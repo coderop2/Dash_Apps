@@ -38,7 +38,8 @@ app.layout = html.Div(children=[
     dcc.Dropdown(
                 id='xaxis-column',
                 options=[{'label': i, 'value': i} for i in countries],
-                value='Select the country'
+                placeholder="Select a city",
+                value='India'
             ),
     
     html.Div([
