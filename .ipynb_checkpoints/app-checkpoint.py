@@ -34,7 +34,7 @@ app.layout = html.Div(children=[
         id='daily-count',
         figure=fig
     ),
-    
+    html.Div(
     html.Table([
         html.Thead(
             html.Tr([html.Th(col) for col in x.columns])
@@ -52,7 +52,7 @@ app.layout = html.Div(children=[
                 value='Select the country'
             ),
     
-    dcc.Graph(id='death-line-country-plot')
+    dcc.Graph(id='death-line-country-plot'))
 ])
 
 @app.callback(Output('death-line-country-plot','figure'),[Input('xaxis-column','value')])
