@@ -37,8 +37,10 @@ top_ten = x[:10]
 
 countries = data.location.unique()
 ten_count = top_ten.Country
-fig = px.line(data.query("location in ten_count"), x="date", y="total_cases", color = "location")
+fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location")
 fig.update_traces(mode='markers+lines')
+fig.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
+fig.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
 fig.update_layout(
         font=dict(
             family="Courier New, monospace",
@@ -54,25 +56,38 @@ fig.update_layout(
                     ))
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
-    html.H1(children='COVID DashBoard'),
-
-    html.Div(children='''
-        COVID-19: A Country Wise Dashboard.
-    '''),
+    html.H1(children='COVID DashBoard',style={'textAlign': 'center','color': colors['text']}),
        
     html.Div([
         html.Div([dash_table.DataTable(
-            id='top-ten',
-            columns=[{"name": i, "id": i, "deletable": False, "selectable": True} for i in top_ten.columns],
-            fixed_rows={'headers': True, 'data': 0},
-            data=top_ten.to_dict('records'))
-                 ],style={'width': '20%', 'display': 'inline-block'}),
+                                    id='top-ten',
+                                    columns=[{"name": i, "id": i, "deletable": False, "selectable": True} for i in top_ten.columns],
+                                    fixed_rows={'headers': True, 'data': 0},
+                                    data=top_ten.to_dict('records'),
+                                    style_header={
+                                                  'backgroundColor': 'rgb(30, 30, 30)',
+                                                  'fontWeight': 'bold'
+                                                  },
+                                    style_cell={
+                                                'backgroundColor': 'rgb(100, 100, 100)',
+                                                'color': colors['text'],
+                                                'maxWidth': 0,
+                                                'fontSize':14},
+                                    style_table={
+                                                 'maxHeight': '350px',
+                                                 'overflowY': 'auto'
+                                                },
+                                    style_data={
+                                                'whiteSpace': 'normal',
+                                                'height': 'auto',
+                                                })],
+                 style={'width': '25%', 'display': 'inline-block','padding-top': '30px'}),
         
         html.Div([
               dcc.Graph(
               id='daily-count',
               figure=fig)
-        ],style={'width': '80%', 'display': 'inline-block', 'float': 'right'}),
+        ],style={'width': '75%', 'display': 'inline-block', 'float': 'right'}),
     ]),
     
     html.Div([
@@ -80,7 +95,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                 id='xaxis-column',
                 options=[{'label': i, 'value': i} for i in countries],
                 placeholder="Select a city",
-                value='India',style={'width': '20%', 'display': 'inline-block'}
+                value='India',style={'width': '35%', 'display': 'inline-block', 'padding-left':'10px'}
             )),
     html.Div([
               html.Span(
@@ -96,42 +111,39 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                         style={'color': colors['deaths_text'],
                         'fontWeight': 'bold'},
                         id='my-deaths')
-              
-
              ])
-    ]),
+    ], style={'padding-top': '20px'}),
     
     html.Div([
         html.Div([dcc.Graph(id='total-cases-country-plot')]
-        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'5px'}),
+        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'}),
         
     html.Div([dcc.Graph(id='new-cases-country-plot')]
-        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'5px'}),
+        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'}),
     
-    html.Div([
-    dcc.Graph(id='death-line-country-plot')]
-        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'5px'})])
+    html.Div([dcc.Graph(id='death-line-country-plot')]
+        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'})], style={'padding-top': '20px'})
 ])
 
 @app.callback(
-    Output('my-country', 'value'),
+    Output('my-country', component_property = 'children'),
     [Input('xaxis-column', 'value')])
 def getCountry(value):
     return "Total number of Cases since the Outbreak for " +value+ " are: "
 
 @app.callback(
-    Output('my-confirmed', 'value'),
+    Output('my-confirmed', component_property = 'children'),
     [Input('xaxis-column', 'value')])
 def getConfirmedCases(value):
     temp = data[data['location'] == value]
-    return str(temp.total_cases)
+    return str(temp.total_cases.max())
 
 @app.callback(
-    Output('my-deaths', 'value'),
+    Output('my-deaths', component_property = 'children'),
     [Input('xaxis-column', 'value')])
 def getDeaths(value):
     temp = data[data['location'] == value]
-    return str(temp.total_deaths)
+    return str(temp.total_deaths.max())
 
 @app.callback(
     Output('total-cases-country-plot','figure'),
@@ -139,6 +151,8 @@ def getDeaths(value):
 def updateTotalCountPlot(country):
     temp = data[data['location'] == country]
     fig2 = px.line(temp, x="date", y="total_cases")
+    fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
+    fig2.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
     fig2.update_layout(
         xaxis_title=None,
         yaxis_title=None,
@@ -163,6 +177,8 @@ def updateTotalCountPlot(country):
 def updateDeathPlot(country):
     temp = data[data['location'] == country]
     fig2 = px.line(temp, x="date", y="total_deaths")
+    fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
+    fig2.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
     fig2.update_layout(
         xaxis_title=None,
         yaxis_title=None,
@@ -187,6 +203,8 @@ def updateDeathPlot(country):
 def updateNewCasesPlot(country):
     temp = data[data['location'] == country]
     fig2 = px.line(temp, x="date", y="new_deaths")
+    fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
+    fig2.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
     fig2.update_layout(
         xaxis_title=None,
         yaxis_title=None,
