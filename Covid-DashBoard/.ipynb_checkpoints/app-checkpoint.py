@@ -16,7 +16,8 @@ colors = {
     'deaths_text':'#f44336',
     'recovered_text':'#5A9E6F',
     'highest_case_bg':'#393939',
-    
+    'linecolor' : '#545454', 
+    'gridcolor': '#363636'
 }
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -37,7 +38,7 @@ top_ten = x[:10]
 
 countries = data.location.unique()
 ten_count = top_ten.Country
-fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location")
+fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location", height=400, width=1100)
 fig.update_traces(mode='markers+lines')
 fig.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
 fig.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
@@ -90,21 +91,14 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                                                 'whiteSpace': 'normal',
                                                 'height': 'auto',
                                                 })],
-                 style={'width': '25%', 'display': 'inline-block','padding-top': '30px'}),
+                 style={'width': '25%', 'display': 'inline-block','padding-top': '30px','padding-left': '10px'}),
         
         html.Div([
               dcc.Graph(
               id='daily-count',
               figure=fig)
-        ],style={'width': '75%', 'display': 'inline-block', 'float': 'right'}),
+        ],style={'width': '70%', 'display': 'inline-block', 'float': 'right','padding-top': '30px','padding-right': '30px'}),
     ]),
-    html.Div([
-    html.Div(dcc.Dropdown(
-                id='xaxis-column',
-                options=[{'label': i, 'value': i} for i in countries],
-                placeholder="Select a city",
-                value='India',style={'width': '35%', 'display': 'inline-block', 'padding-left':'10px'}
-            )),
     html.Div([
               html.Span(
                        style={'color': colors['text']},
@@ -119,8 +113,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                         style={'color': colors['deaths_text'],
                         'fontWeight': 'bold'},
                         id='my-deaths')
-             ])
-    ], style={'padding-top': '20px'}),
+             ], style={'padding-top': '20px'}),
     
     html.Div([
         html.Div([dcc.Graph(id='total-cases-country-plot')]
@@ -151,83 +144,43 @@ def getCountrySpecificData(selected_rows):
     return str(value), str(temp.total_cases.max()), str(temp.total_deaths.max())
 
 @app.callback(
-    Output('total-cases-country-plot','figure'),
-    [Input('xaxis-column','value')])
-def updateTotalCountPlot(country):
-
-    temp = data[data['location'] == country]
-    fig2 = px.line(temp, x="date", y="total_cases")
-    fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-    fig2.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-    fig2.update_layout(
-        xaxis_title=None,
-        yaxis_title=None,
-        font=dict(
-            family="Courier New, monospace",
-            size=14,
-            color=colors['figure_text'],
-        ),
-        paper_bgcolor=colors['background'],
-        plot_bgcolor=colors['background'],
-        margin=dict(l=0, 
-                    r=0, 
-                    t=0, 
-                    b=0
-                    ))
-    fig2.update_traces(mode='markers+lines')
-    return fig2
-
-@app.callback(
+    [Output('total-cases-country-plot','figure'),
     Output('death-line-country-plot','figure'),
-    [Input('xaxis-column','value')])
-def updateDeathPlot(country):
+    Output('new-cases-country-plot','figure')],
+    [Input('countries','selected_rows')])
+def plotCountrySpecificData(selected_rows):
+    country = ""
+    if selected_rows is not None:
+        country = x.loc[selected_rows[0]].Country
+    else:
+        country = x.loc[0].Country
+    
     temp = data[data['location'] == country]
-    fig2 = px.line(temp, x="date", y="total_deaths")
-    fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-    fig2.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-    fig2.update_layout(
-        xaxis_title=None,
-        yaxis_title=None,
-        font=dict(
-            family="Courier New, monospace",
-            size=14,
-            color=colors['figure_text'],
-        ),
-        paper_bgcolor=colors['background'],
-        plot_bgcolor=colors['background'],
-        margin=dict(l=0, 
-                    r=0, 
-                    t=0, 
-                    b=0
-                    ))
-    fig2.update_traces(mode='markers+lines')
-    return fig2
+    
+    plots = []
+    
+    for col, color in zip(['total_cases','total_deaths','new_cases'],['#3CA4FF','#BB2205','#2d6187']):
+        pxfig = px.line(temp, x='date', y=col, color_discrete_sequence = [color])
+        pxfig.update_xaxes(showline=False, linewidth=2, linecolor=colors['linecolor'], gridcolor=colors['gridcolor'])
+        pxfig.update_yaxes(showline=False, linewidth=2, linecolor=colors['linecolor'], gridcolor=colors['gridcolor'])
+        pxfig.update_layout(xaxis_title = None,
+                            yaxis_title = None,
+                            title={'text': col.replace("_"," ").upper(),
+                                   'y':0.9,
+                                   'x':0.5,
+                                   'xanchor': 'center',
+                                   'yanchor': 'top'},
+                           font=dict(family="Courier New, monospace",
+                                     size=14,
+                                     color=colors['figure_text']),
+                           paper_bgcolor=colors['background'],
+                           plot_bgcolor=colors['background'],
+                           margin=dict(l=0, r=0, t=0, b=0))
+        pxfig.update_traces(mode='markers+lines')
+        plots.append(pxfig)
+    
+    return plots[0], plots[1], plots[2]
 
-@app.callback(
-    Output('new-cases-country-plot','figure'),
-    [Input('xaxis-column','value')])
-def updateNewCasesPlot(country):
-    temp = data[data['location'] == country]
-    fig2 = px.line(temp, x="date", y="new_deaths")
-    fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-    fig2.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-    fig2.update_layout(
-        xaxis_title=None,
-        yaxis_title=None,
-        font=dict(
-            family="Courier New, monospace",
-            size=14,
-            color=colors['figure_text'],
-        ),
-        paper_bgcolor=colors['background'],
-        plot_bgcolor=colors['background'],
-        margin=dict(l=0, 
-                    r=0, 
-                    t=0, 
-                    b=0
-                    ))
-    fig2.update_traces(mode='markers+lines')
-    return fig2
 
 if __name__ == '__main__':
     app.run_server(debug=True)
