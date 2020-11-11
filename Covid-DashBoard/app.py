@@ -16,7 +16,8 @@ colors = {
     'deaths_text':'#f44336',
     'recovered_text':'#5A9E6F',
     'highest_case_bg':'#393939',
-    
+    'linecolor' : '#545454', 
+    'gridcolor': '#363636'
 }
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -29,8 +30,8 @@ groups = data.groupby('location')
 
 x = groups.agg({'total_cases':'max', 'total_deaths':'max'})
 x.reset_index(inplace = True)
-x.columns = ['Country', "Max Total Cases", "Total Deaths"]
-x.sort_values("Max Total Cases",ascending = False, inplace = True)
+x.columns = ['Country', "Total Cases", "Total Deaths"]
+x.sort_values("Total Cases",ascending = False, inplace = True)
 x.reset_index(drop = True, inplace = True)
 
 top_ten = x[:10]
@@ -41,7 +42,12 @@ fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", c
 fig.update_traces(mode='markers+lines')
 fig.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
 fig.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-fig.update_layout(
+fig.update_layout(legend=dict(
+    yanchor="top",
+    y=0.99,
+    xanchor="left",
+    x=0.01
+),
         font=dict(
             family="Courier New, monospace",
             size=14,
@@ -60,10 +66,14 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
        
     html.Div([
         html.Div([dash_table.DataTable(
-                                    id='top-ten',
-                                    columns=[{"name": i, "id": i, "deletable": False, "selectable": True} for i in top_ten.columns],
+                                    id='countries',
+                                    columns=[{"name": i, "id": i, "deletable": False, "selectable": True} for i in x.columns],
                                     fixed_rows={'headers': True, 'data': 0},
-                                    data=top_ten.to_dict('records'),
+                                    data=x.to_dict('records'),
+                                    sort_action='native',
+                                    filter_action='native',
+                                    row_selectable='single',
+                                    
                                     style_header={
                                                   'backgroundColor': 'rgb(30, 30, 30)',
                                                   'fontWeight': 'bold'
@@ -89,7 +99,6 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
               figure=fig)
         ],style={'width': '75%', 'display': 'inline-block', 'float': 'right'}),
     ]),
-    
     html.Div([
     html.Div(dcc.Dropdown(
                 id='xaxis-column',
@@ -125,30 +134,71 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'})], style={'padding-top': '20px'})
 ])
 
-@app.callback(
-    Output('my-country', component_property = 'children'),
-    [Input('xaxis-column', 'value')])
-def getCountry(value):
-    return "Total number of Cases since the Outbreak for " +value+ " are: "
+
 
 @app.callback(
-    Output('my-confirmed', component_property = 'children'),
-    [Input('xaxis-column', 'value')])
-def getConfirmedCases(value):
-    temp = data[data['location'] == value]
-    return str(temp.total_cases.max())
+    [Output('my-country', component_property = 'children'),
+     Output('my-confirmed', component_property = 'children'),
+    Output('my-deaths', component_property = 'children')],
+    [Input('countries', 'selected_rows')])
+def getCountrySpecificData(selected_rows):
+    value = ""
+    if selected_rows is not None:
+        value = x.loc[selected_rows[0]].Country
+    else:
+        value = x.loc[0].Country
+    temp = data[data['location'] == str(value)]
+    
+    return str(value), str(temp.total_cases.max()), str(temp.total_deaths.max())
 
 @app.callback(
-    Output('my-deaths', component_property = 'children'),
-    [Input('xaxis-column', 'value')])
-def getDeaths(value):
-    temp = data[data['location'] == value]
-    return str(temp.total_deaths.max())
+    [Output('total-cases-country-plot','figure'),
+    Output('death-line-country-plot','figure'),
+    Output('new-cases-country-plot','figure')],
+    [Input('countries','selected_rows')])
+def plotCountrySpecificData(selected_rows):
+    country = ""
+    if selected_rows is not None:
+        country = x.loc[selected_rows[0]].Country
+    else:
+        country = x.loc[0].Country
+    
+    temp = data[data['location'] == country]
+    
+    plots = []
+    
+    for col, color in zip(['total_cases','total_deaths','new_cases'],['#3CA4FF','#f44336','#5A9E6F']):
+        pxfig = px.line(temp, x='date', y=col, color_discrete_sequence = [color])
+        pxfig.update_xaxes(showline=False, linewidth=2, linecolor=color['linecolor'], gridcolor=color['gridcolor'])
+        pxfig.update_yaxes(showline=False, linewidth=2, linecolor=color['linecolor'], gridcolor=color['gridcolor'])
+        pxfig.update_layout(xaxis_title = None,
+                            yaxis_title = None,
+                            title={'text': col.replace("_"," ").upper(),
+                                   'y':0.9,
+                                   'x':0.5,
+                                   'xanchor': 'center',
+                                   'yanchor': 'top'},
+                           font=dict(family="Courier New, monospace",
+                                     size=14,
+                                     color=colors['figure_text']),
+                           paper_bgcolor=colors['background'],
+                           plot_bgcolor=colors['background'],
+                           margin=dict(l=0, r=0, t=0, b=0))
+        pxfig.update_traces(mode='markers+lines')
+        plots.append(pxfig)
+    
+    return plots[0], plots[1], plots[2]
 
 @app.callback(
     Output('total-cases-country-plot','figure'),
-    [Input('xaxis-column','value')])
-def updateTotalCountPlot(country):
+    [Input('countries','selected_rows')])
+def updateTotalCountPlot(selected_rows):
+    country = ""
+    if selected_rows is not None:
+        country = x.loc[selected_rows[0]].Country
+    else:
+        country = x.loc[0].Country
+    
     temp = data[data['location'] == country]
     fig2 = px.line(temp, x="date", y="total_cases")
     fig2.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
