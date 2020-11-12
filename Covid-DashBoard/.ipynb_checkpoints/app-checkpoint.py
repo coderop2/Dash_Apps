@@ -20,6 +20,20 @@ colors = {
     'gridcolor': '#363636'
 }
 
+divBorderStyle = {
+    'backgroundColor' : '#393939',
+    'borderRadius': '12px',
+   
+}
+
+#Creating custom style for local use
+boxBorderStyle = {
+    'borderColor' : '#393939',
+    'borderStyle': 'solid',
+    'borderRadius': '10px',
+    'borderWidth':2,
+}
+
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 data = pd.read_csv("data.csv", parse_dates=['date'], usecols =[1,2,3,4,5,7,8,10,11,13,14,34,35,47])
@@ -28,7 +42,9 @@ data.drop(data[(data['new_cases'].isnull()) & (data['total_cases'].isnull())].in
 
 groups = data.groupby('location')
 
-x = groups.agg({'total_cases':'max', 'total_deaths':'max'})
+df_pop = groups.agg({'population':'max','total_cases':'max','total_deaths':'max'})
+x = df_pop[['total_cases','total_deaths']]
+
 x.reset_index(inplace = True)
 x.columns = ['Country', "Total Cases", "Total Deaths"]
 x.sort_values("Total Cases",ascending = False, inplace = True)
@@ -38,31 +54,93 @@ top_ten = x[:10]
 
 countries = data.location.unique()
 ten_count = top_ten.Country
-fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location", height=400, width=1100)
-fig.update_traces(mode='markers+lines')
-fig.update_xaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-fig.update_yaxes(showline=False, linewidth=2, linecolor='#545454', gridcolor='#363636')
-fig.update_layout(legend=dict(
-    yanchor="top",
-    y=0.99,
-    xanchor="left",
-    x=0.01
-),
-        font=dict(
-            family="Courier New, monospace",
-            size=14,
-            color=colors['figure_text'],
-        ),
-        paper_bgcolor=colors['background'],
-        plot_bgcolor=colors['background'],
-        margin=dict(l=0, 
-                    r=0, 
-                    t=0, 
-                    b=0
-                    ))
+
+def getMainPlot():
+    fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location", height=400, width=1100)
+    fig.update_traces(mode='markers+lines')
+    fig.update_xaxes(showgrid=True, gridwidth=2, gridcolor='#363636')
+    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='#363636')
+    fig.update_layout(legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01
+    ),
+            font=dict(
+                family="Courier New, monospace",
+                size=14,
+                color=colors['figure_text'],
+            ),
+            paper_bgcolor=colors['background'],
+            plot_bgcolor=colors['background'],
+            margin=dict(l=0, 
+                        r=0, 
+                        t=0, 
+                        b=0
+                        ))
+    return fig
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
     html.H1(children='COVID DashBoard',style={'textAlign': 'center','color': colors['text']}),
+    html.Div([
+                html.Div([html.H4("Total Cases : ",
+                                 style={'textAlign':"center",
+                                       'color': colors['confirmed_text']}),
+
+                         html.P(f"{int(x['Total Cases'].sum()):,d}", 
+                               style={'textAlign':'center',
+                                     'font':30,
+                                     'color': colors['confirmed_text']}),
+
+                         html.P(f"Increase in total cases in the past 24 Hrs : {int(data[data['date'] == '2020-11-02'].new_cases.sum()):,d} "+"("+str(round(int(data[data['date'] == '2020-11-02'].new_cases.sum())/int(x['Total Cases'].sum())*100, 3))+"%)",
+                               style={'textAlign':'center',
+                                     'color': colors['confirmed_text']
+                                     })
+                         ],style=divBorderStyle,className='four columns'),
+
+
+                 html.Div([html.H4("Total Deaths : ",
+                                 style={'textAlign':"center",
+                                       'color': colors['deaths_text']}),
+
+                         html.P(f"{int(x['Total Deaths'].sum()):,d}", 
+                               style={'textAlign':'center',
+                                     'font':30,
+                                     'color': colors['deaths_text']}),
+
+                         html.P(f"Increase in total deaths in the past 24 Hrs : {int(data[data['date'] == '2020-11-02'].new_deaths.sum()):,d} "+"("+str(round(int(data[data['date'] == '2020-11-02'].new_deaths.sum())/int(x['Total Cases'].sum())*100, 3))+"%)",
+                               style={'textAlign':'center',
+                                     'color': colors['deaths_text']
+                                     })
+                         ],style=divBorderStyle,className='four columns'),
+        
+                html.Div([
+                        html.H6(children='Total Cases Per Million: ',
+                               style={
+                                   'textAlign': 'center',
+                                   'color': colors['recovered_text'],
+                               }
+                               ),
+                        html.P("%8.2f"%(round((df_pop.total_cases.sum()/df_pop.population.sum())*1000000,2)),
+                               style={
+                            'textAlign': 'center',
+                            'color': colors['recovered_text'],
+                            'fontSize': 20,
+                        }),
+                        html.H6(children='Total Deaths Per Million: ',
+                               style={
+                                   'textAlign': 'center',
+                                   'color': colors['deaths_text'],
+                               }
+                               ),
+                        html.P("%8.2f"%(round((df_pop.total_deaths.sum()/df_pop.population.sum())*1000000,2)),
+                               style={
+                            'textAlign': 'center',
+                            'color': colors['deaths_text'],
+                            'fontSize': 20,
+                        })
+                        ],style=divBorderStyle,className='four columns')
+    ]),
        
     html.Div([
         html.Div([dash_table.DataTable(
@@ -96,7 +174,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         html.Div([
               dcc.Graph(
               id='daily-count',
-              figure=fig)
+              figure=getMainPlot())
         ],style={'width': '70%', 'display': 'inline-block', 'float': 'right','padding-top': '30px','padding-right': '30px'}),
     ]),
     html.Div([
@@ -161,8 +239,8 @@ def plotCountrySpecificData(selected_rows):
     
     for col, color in zip(['total_cases','total_deaths','new_cases'],['#3CA4FF','#BB2205','#2d6187']):
         pxfig = px.line(temp, x='date', y=col, color_discrete_sequence = [color])
-        pxfig.update_xaxes(showline=False, linewidth=2, linecolor=colors['linecolor'], gridcolor=colors['gridcolor'])
-        pxfig.update_yaxes(showline=False, linewidth=2, linecolor=colors['linecolor'], gridcolor=colors['gridcolor'])
+        pxfig.update_xaxes(showgrid=True, gridwidth=2, gridcolor=colors['gridcolor'])
+        pxfig.update_yaxes(showgrid=True, gridwidth=2, gridcolor=colors['gridcolor'])
         pxfig.update_layout(xaxis_title = None,
                             yaxis_title = None,
                             title={'text': col.replace("_"," ").upper(),
