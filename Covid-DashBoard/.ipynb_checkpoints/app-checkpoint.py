@@ -23,7 +23,11 @@ colors = {
 divBorderStyle = {
     'backgroundColor' : '#393939',
     'borderRadius': '12px',
-   
+    # 'margin-left': '15px',
+    # 'margin-right': '15px',
+    # 'height': '135px',
+    # 'width':'465px',
+    'textAlign':'center'
 }
 
 #Creating custom style for local use
@@ -31,7 +35,10 @@ boxBorderStyle = {
     'borderColor' : '#393939',
     'borderStyle': 'solid',
     'borderRadius': '10px',
-    'borderWidth':2,
+    'borderWidth':2
+    # 'width': '100px',
+    # 'height': '50px'
+
 }
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -56,8 +63,8 @@ countries = data.location.unique()
 ten_count = top_ten.Country
 
 def getMainPlot():
-    fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location", height=400, width=1100)
-    fig.update_traces(mode='markers+lines')
+    fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location")#, height=400, width=1100)
+    # fig.update_traces(mode='markers+lines')
     fig.update_xaxes(showgrid=True, gridwidth=2, gridcolor='#363636')
     fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='#363636')
     fig.update_layout(legend=dict(
@@ -81,66 +88,47 @@ def getMainPlot():
     return fig
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
-    html.H1(children='COVID DashBoard',style={'textAlign': 'center','color': colors['text']}),
+    html.H1(children='COVID DashBoard',style={'textAlign': 'center','color': colors['text']}, className = 'row'),
     html.Div([
-                html.Div([html.H4("Total Cases : ",
-                                 style={'textAlign':"center",
-                                       'color': colors['confirmed_text']}),
+                html.Div([html.H4("Worldwide Total Cases : ",
+                                 style={'color': colors['confirmed_text']}),
 
                          html.P(f"{int(x['Total Cases'].sum()):,d}", 
-                               style={'textAlign':'center',
-                                     'font':30,
+                               style={'font':30,
                                      'color': colors['confirmed_text']}),
 
                          html.P(f"Increase in total cases in the past 24 Hrs : {int(data[data['date'] == '2020-11-02'].new_cases.sum()):,d} "+"("+str(round(int(data[data['date'] == '2020-11-02'].new_cases.sum())/int(x['Total Cases'].sum())*100, 3))+"%)",
-                               style={'textAlign':'center',
-                                     'color': colors['confirmed_text']
-                                     })
+                               style={'color': colors['confirmed_text']})
                          ],style=divBorderStyle,className='four columns'),
 
 
-                 html.Div([html.H4("Total Deaths : ",
-                                 style={'textAlign':"center",
-                                       'color': colors['deaths_text']}),
+                 html.Div([html.H4("Worldwide Total Deaths : ",
+                                 style={'color': colors['deaths_text']}),
 
                          html.P(f"{int(x['Total Deaths'].sum()):,d}", 
-                               style={'textAlign':'center',
-                                     'font':30,
+                               style={'font':30,
                                      'color': colors['deaths_text']}),
 
                          html.P(f"Increase in total deaths in the past 24 Hrs : {int(data[data['date'] == '2020-11-02'].new_deaths.sum()):,d} "+"("+str(round(int(data[data['date'] == '2020-11-02'].new_deaths.sum())/int(x['Total Cases'].sum())*100, 3))+"%)",
-                               style={'textAlign':'center',
-                                     'color': colors['deaths_text']
+                               style={'color': colors['deaths_text']
                                      })
                          ],style=divBorderStyle,className='four columns'),
         
                 html.Div([
-                        html.H6(children='Total Cases Per Million: ',
-                               style={
-                                   'textAlign': 'center',
-                                   'color': colors['recovered_text'],
-                               }
+                        html.H6(children='Total Cases Per Million : ' + 
+                                "%8.2f"%(round((df_pop.total_cases.sum()/df_pop.population.sum())*1000000,2)),
+                               style={'color': colors['confirmed_text'],
+                                   'margin-top': '20px',
+                                   'margin-bottom':'20px'}
                                ),
-                        html.P("%8.2f"%(round((df_pop.total_cases.sum()/df_pop.population.sum())*1000000,2)),
-                               style={
-                            'textAlign': 'center',
-                            'color': colors['recovered_text'],
-                            'fontSize': 20,
-                        }),
-                        html.H6(children='Total Deaths Per Million: ',
-                               style={
-                                   'textAlign': 'center',
-                                   'color': colors['deaths_text'],
-                               }
-                               ),
-                        html.P("%8.2f"%(round((df_pop.total_deaths.sum()/df_pop.population.sum())*1000000,2)),
-                               style={
-                            'textAlign': 'center',
-                            'color': colors['deaths_text'],
-                            'fontSize': 20,
-                        })
+                        html.H6(children='Total Deaths Per Million : ' + 
+                                "%8.2f"%(round((df_pop.total_deaths.sum()/df_pop.population.sum())*1000000,2)),
+                               style={'color': colors['deaths_text'],
+                                   'margin-top': '20px',
+                                   'margin-bottom':'20px'
+                               })
                         ],style=divBorderStyle,className='four columns')
-    ]),
+    ], className = 'row'),
        
     html.Div([
         html.Div([dash_table.DataTable(
@@ -163,7 +151,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                                                 'fontSize':14},
                                     style_table={
                                                  'maxHeight': '350px',
-                                                 'overflowY': 'auto'
+                                                 'overflow-y': 'auto'
                                                 },
                                     style_data={
                                                 'whiteSpace': 'normal',
@@ -175,8 +163,8 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
               dcc.Graph(
               id='daily-count',
               figure=getMainPlot())
-        ],style={'width': '70%', 'display': 'inline-block', 'float': 'right','padding-top': '30px','padding-right': '30px'}),
-    ]),
+        ],style={'width': '70%', 'display': 'inline-block', 'float': 'right'}),
+    ], className = 'row'),
     html.Div([
               html.Span(
                        style={'color': colors['text']},
@@ -191,25 +179,77 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                         style={'color': colors['deaths_text'],
                         'fontWeight': 'bold'},
                         id='my-deaths')
-             ], style={'padding-top': '20px'}),
+             ], style={'padding-top': '20px'}, className = 'row'),
+    
+    html.Div([html.H2(id = 'countryHeader')], 
+             id = 'countryName', 
+             style={'font-family':'Courier New, monospace', 
+                    'text-align':'center',
+                    'color' : colors['figure_text']
+                   }, className = 'row'),
     
     html.Div([
-        html.Div([dcc.Graph(id='total-cases-country-plot')]
-        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'}),
-        
-    html.Div([dcc.Graph(id='new-cases-country-plot')]
-        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'}),
+                html.Div([html.H6("Cases : ",
+                                 style={'color': colors['confirmed_text']})
+                         ],style={'borderColor' : '#393939',
+                                  'borderStyle': 'solid',
+                                  'borderRadius': '10px',
+                                  'borderWidth':2
+                                  # 'width': '200px',
+                                  # 'height': '50px','margin-left'
+                                 }, className='two columns'),
+
+
+                 html.Div([html.H6("Deaths : ",
+                                 style={'color': colors['deaths_text']})
+                         ],style={'borderColor' : '#393939',
+                                  'borderStyle': 'solid',
+                                  'borderRadius': '10px',
+                                  'borderWidth':2,
+                                  # 'width': '200px','height': '50px'
+                                 }, className='two columns')
+    ], className = 'row'),
     
-    html.Div([dcc.Graph(id='death-line-country-plot')]
-        ,style={'width': '30%', 'display': 'inline-block', 'padding-left':'35px'})], style={'padding-top': '20px'})
-])
+    html.Div([
+        html.Div([dcc.RadioItems(
+                    options = [{'label': 'Line Plot', 'value': 'line'},
+                               {'label': 'Bar Plot', 'value': 'bar'}],
+                    value = 'line',
+                    labelStyle={'display': 'inline-block', 'color':colors['figure_text']},
+                    id = 'totalCases_radio')
+                  ], className = 'select_type'),
+        html.Div([dcc.Graph(id='total-cases-country-plot')], 
+                 className = 'eachCountry'),
+        
+        html.Div([dcc.RadioItems(
+                    options = [{'label': 'Line Plot', 'value': 'line'},
+                               {'label': 'Bar Plot', 'value': 'bar'}],
+                    value = 'line',
+                    labelStyle={'display': 'inline-block', 'color':colors['figure_text']},
+                    id = 'newCases_radio')
+                  ], className = 'select_type'),
+        html.Div([dcc.Graph(id='new-cases-country-plot')], 
+                 className = 'eachCountry'),
+        
+        html.Div([dcc.RadioItems(
+                    options = [{'label': 'Line Plot', 'value': 'line'},
+                               {'label': 'Bar Plot', 'value': 'bar'}],
+                    value = 'line',
+                    labelStyle={'display': 'inline-block', 'color':colors['figure_text']},
+                    id = 'totalDeaths_radio')
+                  ], className = 'select_type'),
+        html.Div([dcc.Graph(id='death-line-country-plot')], 
+                 className = 'eachCountry')] 
+        , className = 'row')
+], className = 'all_cols')
 
 
 
 @app.callback(
     [Output('my-country', component_property = 'children'),
      Output('my-confirmed', component_property = 'children'),
-    Output('my-deaths', component_property = 'children')],
+    Output('my-deaths', component_property = 'children'),
+    Output('countryHeader', component_property = 'children')],
     [Input('countries', 'selected_rows')])
 def getCountrySpecificData(selected_rows):
     value = ""
@@ -219,7 +259,7 @@ def getCountrySpecificData(selected_rows):
         value = x.loc[0].Country
     temp = data[data['location'] == str(value)]
     
-    return str(value), str(temp.total_cases.max()), str(temp.total_deaths.max())
+    return str(value), str(temp.total_cases.max()), str(temp.total_deaths.max()), str(value)
 
 @app.callback(
     [Output('total-cases-country-plot','figure'),
