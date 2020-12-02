@@ -23,22 +23,15 @@ colors = {
 divBorderStyle = {
     'backgroundColor' : '#393939',
     'borderRadius': '12px',
-    # 'margin-left': '15px',
-    # 'margin-right': '15px',
-    # 'height': '135px',
-    # 'width':'465px',
     'textAlign':'center'
 }
 
 #Creating custom style for local use
-boxBorderStyle = {'borderColor' : '#393939',
-                  'borderStyle': 'solid',
-                  'borderRadius': '10px',
-                  'borderWidth':2,
-                  'width': '15%',
+boxBorderStyle = {
+                  'width': '20%',
                   'text-align' : 'center',
-                  'margin-left' : '17.5%',
-                  'margin-right' : '17.5%'
+                  'margin-left' : '15%',
+                  'margin-right' : '15%'
                                  }
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -66,16 +59,20 @@ ten_count = top_ten.Country
 selected_country = x.loc[0].Country
 
 def getMainPlot():
-    fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location", color_discrete_sequence =["#e3f2fd","#bbdefb","#90caf9","#64b5f6","#42a5f5",'#2196f3','#1e88e5','#1976d2','#1565c0','#0d47a1'])#, height=400, width=1100)
-    # fig.update_traces(mode='markers+lines')
+    fig = px.line(data.query("location in @ten_count"), x="date", y="total_cases", color = "location", color_discrete_sequence =["#e3f2fd","#bbdefb","#90caf9","#64b5f6","#42a5f5",'#2196f3','#1e88e5','#1976d2','#1565c0','#0d47a1'])
+    fig.update_traces(hovertemplate=None)
     fig.update_xaxes(showgrid=True, gridwidth=2, gridcolor='#363636')
     fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='#363636')
-    fig.update_layout(legend=dict(
-        yanchor="top",
-        y=0.99,
-        xanchor="left",
-        x=0.01
-    ),
+    fig.update_layout(hovermode="x", 
+                      hoverlabel=dict(
+                                font_size=16,
+                                font_family="Rockwell"
+                            ),
+                      legend=dict(yanchor="top",
+                                    y=0.99,
+                                    xanchor="left",
+                                    x=0.01
+                                ),
             font=dict(
                 family="Courier New, monospace",
                 size=14,
@@ -91,7 +88,21 @@ def getMainPlot():
     return fig
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
-    html.H1(children='COVID DashBoard',style={'textAlign': 'center','color': colors['text']}, className = 'row'),
+    html.H1(children='COVID DashBoard',
+            style={'textAlign': 'center',
+                   'color': colors['text'],
+                   'font-family':'Courier New, monospace',
+                   'padding-top' : '1%',
+                   'margin-bottom' : '1%'}, 
+            className = 'row'),
+    html.H2(children = 'Showing data for 2nd November 2020',
+            style={'textAlign': 'center',
+                   'color': colors['text'],
+                   'font-family':'Courier New, monospace',
+                   'margin-top' : '1%',
+                   'margin-bottom' : '1%',
+                   'padding-bottom' : '1%'}, 
+            className = 'row'),
     html.Div([
                 html.Div([html.H4("Worldwide Total Cases : ",
                                  style={'color': colors['confirmed_text']}),
@@ -134,6 +145,13 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     ], className = 'row'),
        
     html.Div([
+        html.Div([
+              dcc.Graph(
+              id='daily-count',
+              figure=getMainPlot())
+        ],style={'width': '65%', 'display': 'inline-block', 'float': 'left',
+                  'margin-left' : '2.5%',
+                  'margin-right' : '2.5%'}),
         html.Div([dash_table.DataTable(
                                     id='countries',
                                     columns=[{"name": i, "id": i, "deletable": False, "selectable": True} for i in x.columns],
@@ -153,40 +171,35 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                                                 'maxWidth': 0,
                                                 'fontSize':14},
                                     style_table={
-                                                 'maxHeight': '400px',
+                                                 'maxHeight': '450px',
                                                  'overflow-y': 'auto'
                                                 },
                                     style_data={
                                                 'whiteSpace': 'normal',
                                                 'height': 'auto',
-                                                })],
-                 style={'width': '25%', 'display': 'inline-block','padding-top': '30px','padding-left': '10px'}),
-        
-        html.Div([
-              dcc.Graph(
-              id='daily-count',
-              figure=getMainPlot())
-        ],style={'width': '70%', 'display': 'inline-block', 'float': 'right'}),
+                                                },
+                                    style_data_conditional=[
+                                                {
+                                                    'if': {'row_index': 'even'},
+                                                    'backgroundColor': 'rgb(60, 60, 60)',
+                                                },
+                                                {
+                                                    'if': {'column_id' : 'Total Cases'},
+                                                    'color':colors['confirmed_text'],
+                                                    'fontWeight': 'bold'
+                                                },
+                                                {
+                                                    'if': {'column_id' : 'Total Deaths'},
+                                                    'color':colors['deaths_text'],
+                                                    'fontWeight': 'bold'
+                                                }
+                                                ])
+                                    ],
+                 style={'width': '25%', 'display': 'inline-block',
+                       'margin-left' : '2.5%',
+                      'margin-right' : '2.5%'})
     ], className = 'row', style = {'margin-top': '2%'}),
-    
-    # html.Div([
-    #           html.Span(
-    #                    style={'color': colors['text']},
-    #                    id='my-country'),
-    #           html.Span(
-    #                     style={'color': colors['confirmed_text'],
-    #                     'fontWeight': 'bold'},
-    #                     id='my-confirmed'),
-    #           html.Span("<br>",
-    #                     id='testing'),
-    #           html.Span(" with deaths: ",
-    #                    style={'color': colors['text']}),
-    #           html.Span(
-    #                     style={'color': colors['deaths_text'],
-    #                     'fontWeight': 'bold'},
-    #                     id='my-deaths')
-    #          ], style={'padding-top': '20px'}, className = 'row'),
-    
+   
     html.Div([html.H2(id = 'countryHeader')], 
              id = 'countryName', 
              style={'font-family':'Courier New, monospace', 
@@ -195,36 +208,58 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                    }, className = 'row'),
     
     html.Div([
-                html.Div([html.H6("Cases : ",
-                                 style={'color': colors['confirmed_text']}),
+                html.Div([html.H3("Cases : ",
+                                 style={'color': '#2f25f7',
+                                        'backgroundColor':'rgba(23, 54, 227, 0.2)',
+                                        'borderColor' : '#393939',
+                                        'borderStyle': 'solid',
+                                        'borderRadius': '10px',
+                                        'borderWidth':2}),
                           html.Div([
                                 html.P([
-                                    html.Span("Total Cases : ", style = {'color':colors['figure_text']}),
-                                    html.Span(id = 'country_cases', style = {'color' : 'lightblue'}),
-                                    html.Span(id = 'country_prev_day_cases', style = {'color' : 'blue'})
+                                    html.Span("Total Cases : ", style = {'color':colors['figure_text'],
+                                                                         'font-size' : 22}),
+                                    html.Span(id = 'country_cases', style = {'color' : '#2f4eeb',
+                                                                            'font-size' : 20}),
+                                    html.Span(id = 'country_prev_day_cases', style = {'color' : '#382feb', 
+                                                                                      'font-weight': 'bold',
+                                                                                     'font-size' : 22})
                                 ], style = {'text-align':'center'}),
                                 html.P([
-                                    html.Span("Cases Per Million : ", style = {'color':colors['figure_text']}),
-                                    html.Span(id = 'country_per_million_cases', style = {'color' : 'lightblue'})
+                                    html.Span("Cases Per Million : ", style = {'color':colors['figure_text'],
+                                                                              'font-size' : 18}),
+                                    html.Span(id = 'country_per_million_cases', style = {'color' : '#2f4eeb',
+                                                                                        'font-size' : 16})
                                 ], style = {'text-align':'center'})
                             ])
-                         ],style=boxBorderStyle, className='two columns'),
+                         ],style=boxBorderStyle, className="three columns"),
 
 
-                 html.Div([html.H6("Deaths : ",
-                                 style={'color': colors['deaths_text']}),
+                 html.Div([html.H3("Deaths : ",
+                                 style={'color': colors['deaths_text'],
+                                        'backgroundColor':'rgba(171, 44, 26, 0.5)',
+                                        'borderColor' : '#393939',
+                                        'borderStyle': 'solid',
+                                        'borderRadius': '10px',
+                                        'borderWidth':2}),
                            html.Div([
                                 html.P([
-                                    html.Span("Total Deaths : ", style = {'color':colors['figure_text']}),
-                                    html.Span(id = 'country_deaths', style = {'color' : 'orange'}),
-                                    html.Span(id = 'country_prev_day_deaths', style = {'color' : 'red'})
+                                    html.Span("Total Deaths : ", style = {'color':colors['figure_text'],
+                                                                         'font-size' : 22}),
+                                    html.Span(id = 'country_deaths', style = {'color' : '#ff4f4f',
+                                                                             'font-size' : 20}),
+                                    html.Span(id = 'country_prev_day_deaths', style = {'color' : 'red',
+                                                                                      'fontWeight': 'bold',
+                                                                                      'font-size' : 22})
                                 ], style = {'text-align':'center'}),
                                 html.P([
-                                    html.Span("Deaths Per Million : ", style = {'color':colors['figure_text']}),
-                                    html.Span(id = 'country_per_million_deaths', style = {'color' : 'red'})
+                                    html.Span("Deaths Per Million : ", style = {'color':colors['figure_text'],
+                                                                               'font-size' : 18}),
+                                    html.Span(id = 'country_per_million_deaths', style = {'color' : '#ff4f4f',
+                                                                                         'font-size' : 16})
                                 ], style = {'text-align':'center'})
                             ])
-                         ],style=boxBorderStyle, className='two columns')
+                         ],style=boxBorderStyle, className="three columns")
     ], className = 'row'),
     
     html.Div([
@@ -254,7 +289,8 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                     id = 'totalDeaths_radio')
                   ,dcc.Graph(id='death-line-country-plot')], 
                  className = 'eachCountry',style={'width': '30%','display': 'inline-block', 'margin-right':'2%'})] 
-        , className = 'row', style = {'margin-top': '2%'})
+        , className = 'row', style = {'margin-top': '2%',
+                                      'padding-bottom' : '2%'})
 ], className = 'all_cols')
 
 @app.callback(
@@ -276,27 +312,12 @@ def getGetCountrySpecificInfo(selected_country, death = False):
     prev_day = country_group[country_group['date'] == '11-02-2020']
 
     obj1 = str(temp['Total Cases'].values[0])
-    obj2 = "+" + str(prev_day['new_cases'].values[0])
+    obj2 = " +" + str(prev_day['new_cases'].values[0])
     obj3 = "%8.2f"%(round((temp['Total Cases'].values[0]/country_group.population.values[0])*1000000,2))
     obj4 = str(temp['Total Deaths'].values[0])
-    obj5 = "+" + str(prev_day['new_deaths'].values[0])
+    obj5 = " +" + str(prev_day['new_deaths'].values[0])
     obj6 = "%8.2f"%(round((temp['Total Deaths'].values[0]/country_group.population.values[0])*1000000,2))
     return obj1, obj2, obj3, obj4, obj5, obj6, str(country)
-# @app.callback(
-#     [Output('my-country', component_property = 'children'),
-#      Output('my-confirmed', component_property = 'children'),
-#     Output('my-deaths', component_property = 'children'),
-#     Output('countryHeader', component_property = 'children')],
-#     [Input('countries', 'selected_rows')])
-# def getCountrySpecificData(selected_rows):
-#     country = x.loc[0].Country
-#     if selected_rows is not None:
-#         country = x.loc[selected_rows[0]].Country
-#     else:
-#         country = x.loc[0].Country
-#     temp = data[data['location'] == str(country)]
-    
-#     return str(country), str(temp.total_cases.max()), str(temp.total_deaths.max()), str(country)
 
 @app.callback(
     [Output('total-cases-country-plot','figure'),
@@ -316,15 +337,17 @@ def plotCountrySpecificData(selected_rows, *values):
     
     plots = []
     
-    for col, color, value in zip(['total_cases','new_cases','total_deaths'],['#3CA4FF','#2d6187','#BB2205'], values):
+    for col, color, value in zip(['total_cases','new_cases','total_deaths'],['#3CA4FF','#1736e3','#BB2205'], values):
         if value == "bar":
             pxfig = px.bar(temp, x='date', y=col, color_discrete_sequence = [color])
         else:
             pxfig = px.line(temp, x='date', y=col, color_discrete_sequence = [color])
             pxfig.update_traces(mode='markers+lines')
+        pxfig.update_traces(hovertemplate = None)
         pxfig.update_xaxes(showgrid=True, gridwidth=2, gridcolor=colors['gridcolor'])
         pxfig.update_yaxes(showgrid=True, gridwidth=2, gridcolor=colors['gridcolor'])
-        pxfig.update_layout(xaxis_title = None,
+        pxfig.update_layout(hovermode="x", 
+                            xaxis_title = None,
                             yaxis_title = None,
                             title={'text': col.replace("_"," ").upper(),
                                    'y':0.9,
